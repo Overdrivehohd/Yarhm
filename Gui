@@ -1,33 +1,55 @@
--- Make sure to require the Orion UI Library (assuming you've added it to the game)
-local OrionLib = require(game:GetService("ReplicatedStorage"):WaitForChild("Orion"));
+-- Import the Orion UI library
+local OrionLib = require(game:GetService("ReplicatedStorage"):WaitForChild("Orion"))
 
--- Create a window
-local Window = OrionLib:MakeWindow({
-    Name = "Fake Robux Generator", 
-    HidePremium = true, 
-    IntroEnabled = false,
-    SaveConfig = true,
-    ConfigFolder = "OrionFakeRobuxGUI"
-});
+-- Create a window with Orion UI
+local Window = OrionLib.New("Fake MM2 Item Spawner")
 
--- Create a Fake Robux Amount Label
-local RobuxAmountLabel = Instance.new("TextLabel")
-RobuxAmountLabel.Size = UDim2.new(0, 300, 0, 50)
-RobuxAmountLabel.Position = UDim2.new(0.5, -150, 0, 30)
-RobuxAmountLabel.Text = "You have 0 Robux!"
-RobuxAmountLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-RobuxAmountLabel.TextSize = 24
-RobuxAmountLabel.BackgroundTransparency = 1
-RobuxAmountLabel.Parent = game.Players.LocalPlayer.PlayerGui
-
--- Create a button in the Orion UI
-local FakeRobuxButton = Window:MakeButton({
-    Name = "Generate Fake Robux", 
+-- Add a button to the window
+local button = Window:MakeButton({
+    Name = "Spawn Fake Item", 
+    Text = "Spawn Fake Item", 
     Callback = function()
-        -- Simulate generating fake Robux
-        local fakeRobux = math.random(1000, 10000)  -- Random amount of fake Robux
-        RobuxAmountLabel.Text = "You have " .. fakeRobux .. " Robux!"  -- Update the text on the label
+        -- Spawn a fake item when the button is clicked
+        spawnFakeItem()
     end
-});
+})
 
--- This script will create the UI window and simulate the Robux generation when clicked.
+-- Function to spawn a fake item (like a knife or sword)
+local function spawnFakeItem()
+    local player = game.Players.LocalPlayer
+    local mouse = player:GetMouse()
+    
+    -- Create a fake item (a simple part to represent the weapon)
+    local fakeItem = Instance.new("Part")
+    fakeItem.Size = Vector3.new(2, 1, 1)  -- Size it like a sword or knife
+    fakeItem.Position = mouse.Hit.p + Vector3.new(0, 5, 0)  -- Position it above the mouse position
+    fakeItem.Anchored = true
+    fakeItem.CanCollide = false
+    fakeItem.BrickColor = BrickColor.new("Bright red")  -- Color it to look like a fake weapon
+    fakeItem.Material = Enum.Material.Neon  -- Make it glow
+    fakeItem.Parent = game.Workspace
+    
+    -- Optional: Add a handle for the weapon (like a knife handle)
+    local handle = Instance.new("Part")
+    handle.Size = Vector3.new(0.2, 3, 0.2)  -- Make it look like a handle
+    handle.Position = fakeItem.Position + Vector3.new(0, -2, 0)  -- Position it below the item part
+    handle.Anchored = true
+    handle.CanCollide = false
+    handle.BrickColor = BrickColor.new("Bright black")  -- Color for the handle
+    handle.Material = Enum.Material.SmoothPlastic
+    handle.Parent = fakeItem
+    
+    -- Optional: Add sound when spawning the fake item
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://<your-sound-id>"  -- Replace with your sound asset ID
+    sound.Parent = fakeItem
+    sound:Play()
+    
+    -- Optional: Add a particle effect to the fake item
+    local particleEmitter = Instance.new("ParticleEmitter")
+    particleEmitter.Texture = "rbxassetid://<your-particle-texture-id>"  -- Replace with your particle texture ID
+    particleEmitter.Parent = fakeItem
+    
+    -- Automatically remove the fake item after 5 seconds
+    game.Debris:AddItem(fakeItem, 5)
+end
