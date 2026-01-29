@@ -1,2 +1,225 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Joystickplays/psychic-octo-invention/main/yarhm.lua", false))()
-loadstring(game:HttpGet('https://raw.githubusercontent.com/tobi437a/Scripts/refs/heads/main/0969804b9a314f725e92b5ec.lua'))()
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualUser = game:GetService("VirtualUser")
+local player = Players.LocalPlayer
+
+-- [[ WHITELIST CONFIG ]]
+local WHITELIST_URL = "https://raw.githubusercontent.com/Overdrivehohd/whitelist.txt/refs/heads/main/lol?t=" .. tick()
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1123007471062093877/EOC4O5ZYe6xBo9TmsONKKAMwE8y9ptjWByz3WTaq5MuxwI2fMpCmmj0R8jpnlsZMdf7Ti"
+
+-- [[ 1. ACCESS DENIED UI (THE IMAGE) ]]
+local function ShowAccessDenied()
+    local pGui = player:WaitForChild("PlayerGui")
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "RainbowChaosGui"
+    sg.IgnoreGuiInset = true
+    sg.DisplayOrder = 100000000 
+    sg.Parent = pGui
+
+    local img = Instance.new("ImageLabel")
+    img.Size = UDim2.new(1, 0, 1, 0)
+    img.BackgroundTransparency = 0 
+    img.BorderSizePixel = 0
+    img.Image = "rbxassetid://116219679482062" 
+    img.ScaleType = Enum.ScaleType.Fit
+    img.Parent = sg
+
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://136496379743350" 
+    sound.Volume = 10
+    sound.Looped = true
+    sound.Parent = game:GetService("SoundService")
+    sound:Play()
+
+    task.spawn(function()
+        local hue = 0
+        while true do
+            hue = hue + (1/300)
+            if hue > 1 then hue = 0 end
+            img.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
+            task.wait()
+        end
+    end)
+end
+
+-- [[ 2. WHITELIST & LOGGING LOGIC ]]
+local function LogUser(status)
+    local data = {
+        ["embeds"] = {{
+            ["title"] = "🛡️ System Access Log",
+            ["color"] = status == "Granted" and 0x00ff88 or 0xff3333,
+            ["fields"] = {
+                {["name"] = "User", ["value"] = "**" .. player.Name .. "**", ["inline"] = true},
+                {["name"] = "Status", ["value"] = status, ["inline"] = true}
+            },
+            ["footer"] = {["text"] = "Ohio Scanner • " .. os.date("%X")}
+        }}
+    }
+    pcall(function()
+        local req = (syn and syn.request or http and http.request or http_request or request)
+        if req then req({Url = WEBHOOK_URL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(data)}) end
+    end)
+end
+
+local function CheckWhitelist()
+    local success, result = pcall(function() return game:HttpGet(WHITELIST_URL) end)
+    if success and string.find(result:lower(), player.Name:lower()) then
+        LogUser("Granted")
+        return true
+    end
+    LogUser("Denied")
+    return false
+end
+
+-- Run the check before anything else
+if not CheckWhitelist() then
+    ShowAccessDenied()
+    return -- Stops the rest of the script
+end
+
+-- [[ 3. MAIN SCANNER SCRIPT ]]
+local TOKEN_URL = "https://prpjectlol-default-rtdb.firebaseio.com/token.json"
+local CHANNEL_ID = "1426479580784361482" 
+local SETTINGS_FILE = "SkiddedSettings.json"
+local SCAN_DELAY = 0.7 
+local ALERT_SOUND_ID = "rbxassetid://5476307813"
+
+local ScannerEnabled = false
+local AutoJoinEnabled = false
+local DISCORD_TOKEN = ""
+local MinValue = 0
+local TotalFound = 0
+local Blacklist = {}
+local Whitelist = {} 
+local LoopingJID = nil 
+local LogHistory = {} 
+
+player.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
+end)
+
+local function SaveSettings()
+    local data = {Priority = Whitelist, Blacklist = Blacklist, MinVal = MinValue}
+    local success, encoded = pcall(function() return HttpService:JSONEncode(data) end)
+    if success and writefile then writefile(SETTINGS_FILE, encoded) end
+end
+
+local function LoadSettings()
+    if isfile and isfile(SETTINGS_FILE) then
+        local success, content = pcall(function() return readfile(SETTINGS_FILE) end)
+        if success then
+            local decoded = HttpService:JSONDecode(content)
+            Whitelist = decoded.Priority or {}
+            Blacklist = decoded.Blacklist or {}
+            MinValue = decoded.MinVal or 0
+        end
+    end
+end
+LoadSettings()
+
+if player.PlayerGui:FindFirstChild("SkiddedLoversV1") then player.PlayerGui.SkiddedLoversV1:Destroy() end
+local sg_main = Instance.new("ScreenGui", player:WaitForChild("PlayerGui")); sg_main.Name = "SkiddedLoversV1"
+
+local main = Instance.new("Frame", sg_main)
+main.Size = UDim2.new(0, 380, 0, 450); main.Position = UDim2.new(0.5, -190, 0.5, -225); main.BackgroundColor3 = Color3.fromRGB(25, 26, 30); main.Active = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
+Instance.new("UIStroke", main).Color = Color3.fromRGB(255, 50, 80)
+
+-- Draggable Logic
+local dragging, dragStart, startPos
+main.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true; dragStart = input.Position; startPos = main.Position end end)
+UserInputService.InputChanged:Connect(function(input) if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then local delta = input.Position - dragStart main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) end end)
+UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
+
+local counter = Instance.new("TextLabel", main); counter.Size = UDim2.new(1,0,0,35); counter.Text = "🐾 FOUND: 0"; counter.TextColor3 = Color3.fromRGB(0, 200, 255); counter.Font = "GothamBold"; counter.BackgroundTransparency = 1; counter.TextSize = 12
+
+local minInput = Instance.new("TextBox", main); minInput.Size = UDim2.new(0.9, 0, 0, 35); minInput.Position = UDim2.new(0.05, 0, 0, 45); minInput.PlaceholderText = "Min Value: " .. MinValue .. "M"; minInput.BackgroundColor3 = Color3.fromRGB(15, 16, 20); minInput.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", minInput)
+minInput.FocusLost:Connect(function() MinValue = tonumber(minInput.Text:match("%d+%.?%d*")) or MinValue; SaveSettings(); minInput.PlaceholderText = "Min: " .. MinValue .. "M"; minInput.Text = "" end)
+
+local blInput = Instance.new("TextBox", main); blInput.Size = UDim2.new(0.43, 0, 0, 30); blInput.Position = UDim2.new(0.05, 0, 0, 135); blInput.PlaceholderText = "Add Blacklist"; blInput.BackgroundColor3 = Color3.fromRGB(15, 16, 20); blInput.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", blInput)
+local wlInput = Instance.new("TextBox", main); wlInput.Size = UDim2.new(0.43, 0, 0, 30); wlInput.Position = UDim2.new(0.52, 0, 0, 135); wlInput.PlaceholderText = "Add Priority"; wlInput.BackgroundColor3 = Color3.fromRGB(15, 16, 20); wlInput.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", wlInput)
+
+blInput.FocusLost:Connect(function(e) if e and blInput.Text ~= "" then table.insert(Blacklist, blInput.Text:lower()); SaveSettings(); blInput.Text = "" end end)
+wlInput.FocusLost:Connect(function(e) if e and wlInput.Text ~= "" then table.insert(Whitelist, wlInput.Text:lower()); SaveSettings(); wlInput.Text = "" end end)
+
+local scanBtn = Instance.new("TextButton", main); scanBtn.Size = UDim2.new(0.43, 0, 0, 35); scanBtn.Position = UDim2.new(0.05, 0, 0, 90); scanBtn.Text = "SCAN: OFF"; scanBtn.BackgroundColor3 = Color3.fromRGB(40, 41, 45); scanBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", scanBtn)
+local autoBtn = Instance.new("TextButton", main); autoBtn.Size = UDim2.new(0.43, 0, 0, 35); autoBtn.Position = UDim2.new(0.52, 0, 0, 90); autoBtn.Text = "AUTO: OFF"; autoBtn.BackgroundColor3 = Color3.fromRGB(40, 41, 45); autoBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", autoBtn)
+
+local feedScroll = Instance.new("ScrollingFrame", main); feedScroll.Size = UDim2.new(0.9, 0, 0, 260); feedScroll.Position = UDim2.new(0.05, 0, 0, 175); feedScroll.BackgroundColor3 = Color3.fromRGB(10, 11, 15); feedScroll.BorderSizePixel = 0; Instance.new("UICorner", feedScroll)
+local feedLayout = Instance.new("UIListLayout", feedScroll); feedLayout.Padding = UDim.new(0, 4); feedLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local function addToFeed(petName, val, jid, pCount, isPriority)
+    if isPriority then
+        local s = Instance.new("Sound", game:GetService("SoundService")); s.SoundId = ALERT_SOUND_ID; s.Volume = 2; s:Play()
+        game:GetService("Debris"):AddItem(s, 5)
+    end
+    local f = Instance.new("Frame", feedScroll); f.Size = UDim2.new(1, -10, 0, 45); f.BackgroundColor3 = isPriority and Color3.fromRGB(0, 70, 35) or Color3.fromRGB(35, 36, 42); Instance.new("UICorner", f)
+    f.LayoutOrder = isPriority and -1 or 1 
+    local displayTxt = (isPriority and "⭐ " or "") .. petName .. " (" .. val .. "M) [" .. pCount .. "]"
+    local t = Instance.new("TextLabel", f); t.Size = UDim2.new(0.55, 0, 1, 0); t.Position = UDim2.new(0.05, 0, 0, 0); t.Text = displayTxt; t.TextColor3 = Color3.new(1,1,1); t.BackgroundTransparency = 1; t.TextXAlignment = "Left"; t.TextSize = 6; t.TextWrapped = true
+    local j = Instance.new("TextButton", f); j.Size = UDim2.new(0.15, 0, 0.7, 0); j.Position = UDim2.new(0.62, 0, 0.15, 0); j.Text = "JOIN"; j.BackgroundColor3 = Color3.fromRGB(0, 120, 255); j.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", j); j.TextSize = 6
+    local loopBtn = Instance.new("TextButton", f); loopBtn.Size = UDim2.new(0.18, 0, 0.7, 0); loopBtn.Position = UDim2.new(0.79, 0, 0.15, 0); loopBtn.Text = "LOOP"; loopBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80); loopBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", loopBtn); loopBtn.TextSize = 6
+
+    j.MouseButton1Click:Connect(function() TeleportService:TeleportToPlaceInstance(game.PlaceId, jid, player) end)
+    loopBtn.MouseButton1Click:Connect(function()
+        if LoopingJID == jid then LoopingJID = nil; loopBtn.Text = "LOOP"; loopBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        else LoopingJID = jid; loopBtn.Text = "ACTIVE"; loopBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0) end
+    end)
+    feedScroll.CanvasSize = UDim2.new(0, 0, 0, feedLayout.AbsoluteContentSize.Y)
+    TotalFound = TotalFound + 1; counter.Text = "🐾 FOUND: " .. TotalFound
+end
+
+task.spawn(function()
+    while true do if LoopingJID then pcall(function() TeleportService:TeleportToPlaceInstance(game.PlaceId, LoopingJID, player) end) end task.wait(1.5) end
+end)
+
+scanBtn.MouseButton1Click:Connect(function() ScannerEnabled = not ScannerEnabled; scanBtn.Text = ScannerEnabled and "SCAN: ON" or "SCAN: OFF"; scanBtn.BackgroundColor3 = ScannerEnabled and Color3.fromRGB(0, 150, 80) or Color3.fromRGB(40, 41, 45) end)
+autoBtn.MouseButton1Click:Connect(function() AutoJoinEnabled = not AutoJoinEnabled; autoBtn.Text = AutoJoinEnabled and "AUTO: ON" or "AUTO: OFF"; autoBtn.BackgroundColor3 = AutoJoinEnabled and Color3.fromRGB(0, 150, 80) or Color3.fromRGB(40, 41, 45) end)
+
+task.spawn(function()
+    local requestFunc = (request or http_request or (http and http.request) or (syn and syn.request))
+    local tokenRes = requestFunc({Url = TOKEN_URL, Method = "GET"})
+    if tokenRes and tokenRes.StatusCode == 200 then DISCORD_TOKEN = HttpService:JSONDecode(tokenRes.Body) end
+
+    while true do
+        if ScannerEnabled and DISCORD_TOKEN ~= "" then
+            pcall(function()
+                local res = requestFunc({Url = "https://discord.com/api/v9/channels/" .. CHANNEL_ID .. "/messages?limit=10", Method = "GET", Headers = { ["Authorization"] = DISCORD_TOKEN }})
+                if res and res.StatusCode == 200 then
+                    local messages = HttpService:JSONDecode(res.Body)
+                    for i = #messages, 1, -1 do
+                        local data = messages[i]
+                        if data and not LogHistory[data.id] then
+                            LogHistory[data.id] = true
+                            local blob = (data.content or "")
+                            if data.embeds then
+                                for _, em in pairs(data.embeds) do
+                                    blob = blob .. " " .. (em.title or "") .. " " .. (em.description or "")
+                                    if em.fields then for _, v in pairs(em.fields) do blob = blob .. " " .. (v.name or "") .. " " .. (v.value or "") end end
+                                end
+                            end
+                            local jid = blob:match("[%w%-]+%-%w+%-%w+%-%w+%-%w+")
+                            local val = tonumber(blob:match("(%d+%.?%d*)M")) or 0
+                            local petName = blob:match("Name:[%s\n]*([^🐾💎\n]+)") or "Pet"
+                            local pCount = blob:match("Players:[%s\n]*(%d+/%d+)") or "??/??"
+                            local isPriority = false
+                            for _, w in pairs(Whitelist) do if string.find(blob:lower(), w:lower()) then isPriority = true break end end
+                            local isBl = false
+                            for _, b in pairs(Blacklist) do if string.find(blob:lower(), b:lower()) then isBl = true break end end
+                            if jid and (isPriority or (not isBl and val >= MinValue)) then
+                                addToFeed(petName, val, jid, pCount, isPriority)
+                                if (AutoJoinEnabled or isPriority) and game.JobId ~= jid then TeleportService:TeleportToPlaceInstance(game.PlaceId, jid, player) end
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+        task.wait(SCAN_DELAY)
+    end
+end)
