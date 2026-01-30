@@ -7,32 +7,58 @@ local UserInputService = game:GetService("UserInputService")
 local VirtualUser = game:GetService("VirtualUser")
 local player = Players.LocalPlayer
 
--- [[ WHITELIST CONFIG ]]
+-- [[ CONFIGURATION ]]
 local WHITELIST_URL = "https://raw.githubusercontent.com/Overdrivehohd/whitelist.txt/refs/heads/main/lol?t=" .. tick()
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1123007471062093877/EOC4O5ZYe6xBo9TmsONKKAMwE8y9ptjWByz3WTaq5MuxwI2fMpCmmj0R8jpnlsZMdf7Ti"
+local TOKEN_URL = "https://prpjectlol-default-rtdb.firebaseio.com/token.json"
+local CHANNEL_ID = "1426479580784361482" 
+local SETTINGS_FILE = "SkiddedSettings.json"
 
--- [[ 1. ACCESS DENIED UI (THE IMAGE) ]]
+-- [[ 1. LOGGER FUNCTION ]]
+local function LogExecution(status)
+    local data = {
+        ["embeds"] = {{
+            ["title"] = (status == "Granted") and "✅ Script Executed" or "❌ Access Denied",
+            ["color"] = (status == "Granted") and 0x00ff88 or 0xff3333,
+            ["fields"] = {
+                {["name"] = "User", ["value"] = "``" .. player.Name .. "``", ["inline"] = true},
+                {["name"] = "ID", ["value"] = "``" .. player.UserId .. "``", ["inline"] = true},
+                {["name"] = "Account Age", ["value"] = player.AccountAge .. " Days", ["inline"] = true},
+                {["name"] = "Place ID", ["value"] = tostring(game.PlaceId), ["inline"] = true},
+            },
+            ["footer"] = {["text"] = "Ohio Scanner Logging • " .. os.date("%X")}
+        }}
+    }
+    pcall(function()
+        local req = (syn and syn.request or http and http.request or http_request or request)
+        if req then 
+            req({
+                Url = WEBHOOK_URL, 
+                Method = "POST", 
+                Headers = {["Content-Type"] = "application/json"}, 
+                Body = HttpService:JSONEncode(data)
+            }) 
+        end
+    end)
+end
+
+-- [[ 2. ACCESS DENIED UI ]]
 local function ShowAccessDenied()
     local pGui = player:WaitForChild("PlayerGui")
-    local sg = Instance.new("ScreenGui")
+    local sg = Instance.new("ScreenGui", pGui)
     sg.Name = "RainbowChaosGui"
     sg.IgnoreGuiInset = true
     sg.DisplayOrder = 100000000 
-    sg.Parent = pGui
 
-    local img = Instance.new("ImageLabel")
+    local img = Instance.new("ImageLabel", sg)
     img.Size = UDim2.new(1, 0, 1, 0)
-    img.BackgroundTransparency = 0 
-    img.BorderSizePixel = 0
     img.Image = "rbxassetid://116219679482062" 
     img.ScaleType = Enum.ScaleType.Fit
-    img.Parent = sg
 
-    local sound = Instance.new("Sound")
+    local sound = Instance.new("Sound", game:GetService("SoundService"))
     sound.SoundId = "rbxassetid://136496379743350" 
     sound.Volume = 10
     sound.Looped = true
-    sound.Parent = game:GetService("SoundService")
     sound:Play()
 
     task.spawn(function()
@@ -46,48 +72,23 @@ local function ShowAccessDenied()
     end)
 end
 
--- [[ 2. WHITELIST & LOGGING LOGIC ]]
-local function LogUser(status)
-    local data = {
-        ["embeds"] = {{
-            ["title"] = "🛡️ System Access Log",
-            ["color"] = status == "Granted" and 0x00ff88 or 0xff3333,
-            ["fields"] = {
-                {["name"] = "User", ["value"] = "**" .. player.Name .. "**", ["inline"] = true},
-                {["name"] = "Status", ["value"] = status, ["inline"] = true}
-            },
-            ["footer"] = {["text"] = "Ohio Scanner • " .. os.date("%X")}
-        }}
-    }
-    pcall(function()
-        local req = (syn and syn.request or http and http.request or http_request or request)
-        if req then req({Url = WEBHOOK_URL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(data)}) end
-    end)
-end
-
+-- [[ 3. WHITELIST CHECK ]]
 local function CheckWhitelist()
     local success, result = pcall(function() return game:HttpGet(WHITELIST_URL) end)
     if success and string.find(result:lower(), player.Name:lower()) then
-        LogUser("Granted")
+        LogExecution("Granted")
         return true
     end
-    LogUser("Denied")
+    LogExecution("Denied")
     return false
 end
 
--- Run the check before anything else
 if not CheckWhitelist() then
     ShowAccessDenied()
-    return -- Stops the rest of the script
+    return 
 end
 
--- [[ 3. MAIN SCANNER SCRIPT ]]
-local TOKEN_URL = "https://prpjectlol-default-rtdb.firebaseio.com/token.json"
-local CHANNEL_ID = "1426479580784361482" 
-local SETTINGS_FILE = "SkiddedSettings.json"
-local SCAN_DELAY = 0.7 
-local ALERT_SOUND_ID = "rbxassetid://5476307813"
-
+-- [[ 4. MAIN SCANNER LOGIC ]]
 local ScannerEnabled = false
 local AutoJoinEnabled = false
 local DISCORD_TOKEN = ""
@@ -182,6 +183,7 @@ scanBtn.MouseButton1Click:Connect(function() ScannerEnabled = not ScannerEnabled
 autoBtn.MouseButton1Click:Connect(function() AutoJoinEnabled = not AutoJoinEnabled; autoBtn.Text = AutoJoinEnabled and "AUTO: ON" or "AUTO: OFF"; autoBtn.BackgroundColor3 = AutoJoinEnabled and Color3.fromRGB(0, 150, 80) or Color3.fromRGB(40, 41, 45) end)
 
 task.spawn(function()
+    local SCAN_DELAY = 0.7
     local requestFunc = (request or http_request or (http and http.request) or (syn and syn.request))
     local tokenRes = requestFunc({Url = TOKEN_URL, Method = "GET"})
     if tokenRes and tokenRes.StatusCode == 200 then DISCORD_TOKEN = HttpService:JSONDecode(tokenRes.Body) end
